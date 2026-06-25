@@ -1,6 +1,13 @@
-function assertOk(response) {
+async function assertOk(response) {
   if (!response.ok) {
-    throw new Error('PRD 请求失败，请稍后重试')
+    let message = 'PRD 请求失败，请稍后重试'
+    try {
+      const result = await response.json()
+      message = result.message || message
+    } catch {
+      message = response.statusText || message
+    }
+    throw new Error(message)
   }
   return response
 }

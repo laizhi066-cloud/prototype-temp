@@ -3,7 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
-const prdRoot = path.resolve(process.cwd(), 'docs/product/prds')
+const prdRoot = path.resolve(process.cwd(), process.env.PRD_ROOT || 'docs/product/prds')
 const indexPath = path.join(prdRoot, 'index.json')
 
 function createSlug(text) {
@@ -84,107 +84,115 @@ function sendError(res, message, statusCode = 400) {
   sendJson(res, { message }, statusCode)
 }
 
+async function handlePrdRequest(req, res) {
+  try {
+    const url = new URL(req.url || '/', 'http://127.0.0.1')
+    const id = decodeURIComponent(url.pathname.replace(/^\/+/, ''))
+    const index = await readIndex()
+
+    if (req.method === 'GET' && !id) {
+      sendJson(res, index)
+      return
+    }
+
+    if (req.method === 'GET' && id) {
+      const document = findDocument(index, id)
+      if (!document) {
+        sendError(res, '未找到 PRD 文档', 404)
+        return
+      }
+      const content = await fs.readFile(documentPath(document), 'utf8')
+      sendJson(res, { ...document, content })
+      return
+    }
+
+    if (req.method === 'POST' && !id) {
+      const payload = await readJsonBody(req)
+      const title = payload.title?.trim()
+      const content = payload.content?.trim()
+      if (!title || !content) {
+        sendError(res, '请填写文档标题和内容')
+        return
+      }
+
+      const categoryId = ensureGroup(index, payload.category)
+      const documentId = createSlug(title)
+      const file = `${documentId}.md`
+      const updatedAt = nowText()
+      const existing = findDocument(index, documentId)
+
+      if (existing) {
+        sendError(res, 'PRD 标题已存在，请改名或编辑原文档', 409)
+        return
+      }
+
+      const document = {
+        id: documentId,
+        title,
+        categoryId,
+        order: index.documents.length + 1,
+        file,
+        updatedAt,
+      }
+
+      index.documents.push(document)
+      await fs.writeFile(path.join(prdRoot, file), `${content}\n`, 'utf8')
+      await writeIndex(index)
+      sendJson(res, { ...document, content }, 201)
+      return
+    }
+
+    if (req.method === 'PUT' && id) {
+      const payload = await readJsonBody(req)
+      const document = findDocument(index, id)
+      if (!document) {
+        sendError(res, '未找到 PRD 文档', 404)
+        return
+      }
+      if (!payload.title?.trim() || !payload.content?.trim()) {
+        sendError(res, '请填写文档标题和内容')
+        return
+      }
+
+      const nextTitle = payload.title.trim()
+      const nextCategoryId = ensureGroup(index, payload.category)
+      const nextContent = payload.content.trim()
+      const currentContent = await fs.readFile(documentPath(document), 'utf8')
+      const hasChanged =
+        document.title !== nextTitle ||
+        document.categoryId !== nextCategoryId ||
+        currentContent.trimEnd() !== nextContent
+
+      if (hasChanged) {
+        document.title = nextTitle
+        document.categoryId = nextCategoryId
+        document.updatedAt = nowText()
+        await fs.writeFile(documentPath(document), `${nextContent}\n`, 'utf8')
+        await writeIndex(index)
+      }
+
+      sendJson(res, { ...document, content: nextContent })
+      return
+    }
+
+    sendError(res, '不支持的 PRD 请求', 405)
+  } catch (error) {
+    sendError(res, error.message || 'PRD 服务异常', 500)
+  }
+}
+
+function registerPrdMiddleware(middlewares) {
+  middlewares.use('/api/prds', handlePrdRequest)
+}
+
 function prdMiddleware() {
   return {
     name: 'prd-docs-api',
     configureServer(server) {
-      server.middlewares.use('/api/prds', async (req, res) => {
-        try {
-          const url = new URL(req.url || '/', 'http://127.0.0.1')
-          const id = decodeURIComponent(url.pathname.replace(/^\/+/, ''))
-          const index = await readIndex()
-
-          if (req.method === 'GET' && !id) {
-            sendJson(res, index)
-            return
-          }
-
-          if (req.method === 'GET' && id) {
-            const document = findDocument(index, id)
-            if (!document) {
-              sendError(res, '未找到 PRD 文档', 404)
-              return
-            }
-            const content = await fs.readFile(documentPath(document), 'utf8')
-            sendJson(res, { ...document, content })
-            return
-          }
-
-          if (req.method === 'POST' && !id) {
-            const payload = await readJsonBody(req)
-            const title = payload.title?.trim()
-            const content = payload.content?.trim()
-            if (!title || !content) {
-              sendError(res, '请填写文档标题和内容')
-              return
-            }
-
-            const categoryId = ensureGroup(index, payload.category)
-            const documentId = createSlug(title)
-            const file = `${documentId}.md`
-            const updatedAt = nowText()
-            const existing = findDocument(index, documentId)
-
-            if (existing) {
-              const existingContent = await fs.readFile(documentPath(existing), 'utf8')
-              sendJson(res, { ...existing, content: existingContent.trimEnd() })
-              return
-            }
-
-            const document = {
-              id: documentId,
-              title,
-              categoryId,
-              order: index.documents.length + 1,
-              file,
-              updatedAt,
-            }
-
-            index.documents.push(document)
-            await fs.writeFile(path.join(prdRoot, file), `${content}\n`, 'utf8')
-            await writeIndex(index)
-            sendJson(res, { ...document, content }, 201)
-            return
-          }
-
-          if (req.method === 'PUT' && id) {
-            const payload = await readJsonBody(req)
-            const document = findDocument(index, id)
-            if (!document) {
-              sendError(res, '未找到 PRD 文档', 404)
-              return
-            }
-            if (!payload.title?.trim() || !payload.content?.trim()) {
-              sendError(res, '请填写文档标题和内容')
-              return
-            }
-
-            const nextTitle = payload.title.trim()
-            const nextCategoryId = ensureGroup(index, payload.category)
-            const nextContent = payload.content.trim()
-            const currentContent = await fs.readFile(documentPath(document), 'utf8')
-            const hasChanged =
-              document.title !== nextTitle ||
-              document.categoryId !== nextCategoryId ||
-              currentContent.trimEnd() !== nextContent
-
-            if (hasChanged) {
-              document.title = nextTitle
-              document.categoryId = nextCategoryId
-              document.updatedAt = nowText()
-              await fs.writeFile(documentPath(document), `${nextContent}\n`, 'utf8')
-              await writeIndex(index)
-            }
-
-            sendJson(res, { ...document, content: nextContent })
-            return
-          }
-
-          sendError(res, '不支持的 PRD 请求', 405)
-        } catch (error) {
-          sendError(res, error.message || 'PRD 服务异常', 500)
-        }
-      })
+      registerPrdMiddleware(server.middlewares)
+    },
+    configurePreviewServer(server) {
+      registerPrdMiddleware(server.middlewares)
     },
   }
 }

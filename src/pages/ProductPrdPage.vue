@@ -73,13 +73,43 @@ function renderInline(value) {
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
 }
 
+function isTableRow(line) {
+  return line.startsWith('|') && line.endsWith('|')
+}
+
+function isTableSeparator(line) {
+  return /^\|\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|$/.test(line)
+}
+
+function renderTable(rows) {
+  if (rows.length < 2 || !isTableSeparator(rows[1])) {
+    return ''
+  }
+
+  const cells = (row) =>
+    row
+      .slice(1, -1)
+      .split('|')
+      .map((cell) => renderInline(cell.trim()))
+
+  const header = cells(rows[0])
+  const bodyRows = rows.slice(2).map(cells)
+
+  return `<table><thead><tr>${header
+    .map((cell) => `<th>${cell}</th>`)
+    .join('')}</tr></thead><tbody>${bodyRows
+    .map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`)
+    .join('')}</tbody></table>`
+}
+
 function renderMarkdown(markdown, hiddenTitle = '') {
   const lines = markdown.split('\n')
   const html = []
   let inList = false
   let hasCheckedTitle = false
 
-  for (const line of lines) {
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]
     const trimmed = line.trim()
 
     if (!trimmed) {
@@ -87,6 +117,27 @@ function renderMarkdown(markdown, hiddenTitle = '') {
         html.push('</ul>')
         inList = false
       }
+      continue
+    }
+
+    if (
+      isTableRow(trimmed) &&
+      lines[index + 1] &&
+      isTableSeparator(lines[index + 1].trim())
+    ) {
+      if (inList) {
+        html.push('</ul>')
+        inList = false
+      }
+
+      const rows = [trimmed, lines[index + 1].trim()]
+      index += 2
+      while (lines[index] && isTableRow(lines[index].trim())) {
+        rows.push(lines[index].trim())
+        index += 1
+      }
+      index -= 1
+      html.push(renderTable(rows))
       continue
     }
 
@@ -501,6 +552,35 @@ onMounted(initialize)
   gap: 7px;
   margin: 8px 0;
   padding-left: 18px;
+}
+
+.markdown-body :deep(table) {
+  width: 100%;
+  margin: 12px 0;
+  overflow: hidden;
+  border-collapse: collapse;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.markdown-body :deep(th),
+.markdown-body :deep(td) {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown-body :deep(th) {
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.markdown-body :deep(tr:last-child td) {
+  border-bottom: 0;
 }
 
 .markdown-body :deep(code) {

@@ -1,30 +1,40 @@
 import { expect, test } from '@playwright/test'
+import fs from 'node:fs'
+import path from 'node:path'
+
+const prdIndexPath = path.join(process.cwd(), 'docs/product/prds/index.json')
 
 test('PM 可以公开查看、跳转和在线维护 PRD', async ({ page }) => {
+  const smokeTitle = `临时 PRD ${Date.now()}`
+
   await page.goto('/prd')
   await expect(page.getByRole('heading', { name: '订单管理系统 PRD' })).toBeVisible()
   await expect(page.getByRole('tree', { name: 'PRD 文档目录' })).toBeVisible()
+  await expect(page.locator('.markdown-body table')).toBeVisible()
 
   await page.getByRole('treeitem', { name: '订单管理系统 PRD' }).click()
   await expect(page).toHaveURL(/\/prd\/order-management-prd$/)
 
   await page.getByRole('button', { name: '新增文档' }).click()
-  await page.getByLabel('文档标题').fill('在线编辑验收')
+  await page.getByLabel('文档标题').fill(smokeTitle)
   await page.getByLabel('所属分类').fill('验收文档')
-  await page.getByLabel('文档内容').fill('# 在线编辑验收\n\n- 支持新增 PRD\n- 支持保存后刷新保留')
+  await page.getByLabel('文档内容').fill(`# ${smokeTitle}\n\n- 支持新增 PRD\n- 支持保存后刷新保留`)
   await page.getByRole('button', { name: '保存文档' }).click()
   await expect(page.getByText('PRD 已保存')).toBeVisible()
-  await expect(page.getByRole('treeitem', { name: '在线编辑验收' })).toBeVisible()
+  await expect(page.getByRole('treeitem', { name: smokeTitle })).toBeVisible()
 
   await page.reload()
-  await expect(page.getByRole('heading', { name: '在线编辑验收' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: smokeTitle })).toBeVisible()
   await expect(page.getByText('支持保存后刷新保留')).toBeVisible()
 
   await page.getByRole('button', { name: '编辑文档' }).click()
-  await page.getByLabel('文档内容').fill('# 在线编辑验收\n\n- 支持新增 PRD\n- 支持保存后刷新保留\n- 支持在线编辑')
+  await page.getByLabel('文档内容').fill(`# ${smokeTitle}\n\n- 支持新增 PRD\n- 支持保存后刷新保留\n- 支持在线编辑`)
   await page.getByRole('button', { name: '保存文档' }).click()
   await page.reload()
   await expect(page.getByText('支持在线编辑')).toBeVisible()
+
+  const prdIndex = fs.readFileSync(prdIndexPath, 'utf8')
+  expect(prdIndex).not.toContain(smokeTitle)
 })
 
 test('PM can log in and create an order management record', async ({ page }) => {

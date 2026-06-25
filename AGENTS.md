@@ -49,6 +49,7 @@
 - 产品名、登录页文案、侧边栏品牌、树状导航和首页指标必须来自 `src/config/productProfile.js`。
 - PRD 文档必须从 `docs/product/prds/index.json` 和 `docs/product/prds/*.md` 读取；不要把完整 PRD 写回 `productProfile.js`。
 - `/prd` 是公开文档入口，不需要鉴权；左侧必须是 PRD 目录树，右侧必须支持预览、在线新增、编辑和保存。
+- PRD 在线保存依赖本地 Vite `dev` / `preview` 服务提供的 `/api/prds`；如果只部署纯静态 `dist`，PRD 页面只能作为只读预览。
 - PM 不需要确认“是否写入 PRD”；AI 默认把本轮产品结论写入对应 PRD，PM 只负责在线微调。
 - 默认账号、默认密码、演示用户角色和主题色来自 `src/config/appConfig.js`。
 - 每个原型流程都要在相关位置包含加载、空状态、错误、校验、成功反馈和危险操作确认。
