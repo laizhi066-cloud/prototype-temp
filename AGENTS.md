@@ -21,7 +21,8 @@
 8. 如果新增业务模块，使用 `.agents/skills/feature-module-template/SKILL.md`。
 9. 如果修改品牌样式、默认登录信息或主题，使用 `.agents/skills/brand-config/SKILL.md`。
 10. 写代码前先用中文输出简短实现说明：项目类型、主题推荐、页面、路由、组件、mock API、验收标准。
-11. 每次完成有效修改并通过必要验证后，必须创建一个中文 Git commit，方便产品团队回溯。
+11. 原型进入评审或交付开发前，必须使用 `.agents/skills/prd-development/SKILL.md` 和 `.agents/skills/development-handoff/SKILL.md` 生成 PRD 与开发交付包。
+12. 每次完成有效修改并通过必要验证后，必须创建一个中文 Git commit，方便产品团队回溯。
 
 ## 默认产品决策
 
@@ -33,6 +34,8 @@
 
 ## 硬性规则
 
+- 验证以产品验收为主，不以代码质量展示为主；不要把大量测试日志抛给产品同事。
+- 按改动类型分级验证：文档 / 规则 / prompt 只做轻量检查；页面样式改动需要截图；路由、登录、核心流程改动才运行 smoke 测试。
 - 项目无法运行时，先检查 Node.js 和 npm，再判断是否是代码问题。
 - 不要静默安装系统级软件。只有用户明确运行 `scripts/setup.ps1 -InstallNode` 时，才尝试安装 Node.js。
 - 不要问产品经理后台类产品是否需要登录页、头部或侧边栏，这些都是默认配置。
@@ -45,9 +48,19 @@
 - 产品名、登录页文案、侧边栏品牌、树状导航和首页指标必须来自 `src/config/productProfile.js`。
 - 默认账号、默认密码、演示用户角色和主题色来自 `src/config/appConfig.js`。
 - 每个原型流程都要在相关位置包含加载、空状态、错误、校验、成功反馈和危险操作确认。
+- 原型完成不等于交付完成；交付给开发前必须产出 PRD、用户故事、接口 / 数据说明、验收用例和开发任务拆分。
+- 开发交付文档默认放在 `docs/product/prds/`、`docs/product/user-stories/`、`docs/product/development-handoffs/` 和 `docs/product/acceptance-cases/`。
 - 如果本轮对文件做了有效修改，完成前必须执行 Git 提交；commit 信息必须使用中文，不能使用纯英文提交信息。
 - 如果当前目录还不是 Git 仓库，先初始化 Git，再提交；如果无法提交，必须在最终回复中说明失败原因和当前未提交文件。
 - AI 最终回复必须包含本轮 commit 信息；没有 commit 时不能说已经完成回溯提交。
+
+## 分级验证规则
+
+- 文档、规则、prompt、skills 修改：检查文件存在、链接路径和关键规则即可，不需要运行构建或 smoke。
+- 产品文案、配置、主题 token 修改：运行构建；涉及视觉时补截图。
+- 页面 UI、布局、路由、登录、导航、核心业务流程修改：运行构建和 smoke。
+- PRD、交付包、验收清单修改：检查文档结构完整即可；除非同时改了运行页面，否则不跑 smoke。
+- 最终回复面向 PM，只说明“已验证什么”和“是否通过”，不要贴长日志。
 
 ## 多 AI 工具技能目录
 

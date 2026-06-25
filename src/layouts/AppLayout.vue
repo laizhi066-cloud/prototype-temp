@@ -46,6 +46,10 @@ function handleLogout() {
   auth.logout()
   router.push('/login')
 }
+
+function openPrd() {
+  window.open('/prd', '_blank', 'noopener,noreferrer')
+}
 </script>
 
 <template>
@@ -108,6 +112,9 @@ function handleLogout() {
           <span>{{ productProfile.headerHint }}</span>
         </div>
         <div class="header-right">
+          <el-button class="prd-button" type="primary" plain @click="openPrd">
+            PRD
+          </el-button>
           <span class="user-role">{{ auth.user?.role }}</span>
           <el-dropdown>
             <span class="user-name">{{ auth.user?.name }}</span>
@@ -260,6 +267,12 @@ function handleLogout() {
   font-size: 12px;
 }
 
+.prd-button {
+  height: 30px;
+  padding: 0 12px;
+  font-weight: 600;
+}
+
 .user-name {
   cursor: pointer;
   color: #111827;
@@ -313,6 +326,11 @@ function handleLogout() {
 
   .user-role {
     display: none;
+  }
+
+  .prd-button {
+    min-width: 44px;
+    padding: 0 10px;
   }
 
   .app-main {

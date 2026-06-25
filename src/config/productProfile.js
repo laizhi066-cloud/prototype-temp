@@ -62,4 +62,32 @@ export const productProfile = {
     { action: '状态更新', target: '杭州云帆贸易已付款', time: '09:48' },
     { action: '异常标记', target: '深圳远航供应链待复核', time: '09:12' },
   ],
+  prd: {
+    version: 'V1.0',
+    owner: '产品团队',
+    goal: '帮助运营和销售团队统一处理订单查询、状态跟进、客户信息维护和异常订单协同。',
+    scope: [
+      '登录后进入订单管理工作台',
+      '查看订单列表、筛选订单、创建订单、编辑订单和删除订单',
+      '查看异常订单并进入后续复核流程',
+      '通过客户运营和经营分析入口承接后续模块扩展',
+    ],
+    outOfScope: [
+      '真实企业统一登录接入',
+      '真实后端接口和权限系统',
+      '财务结算、发票和仓储系统深度集成',
+    ],
+    acceptance: [
+      '运营人员可以登录系统并进入工作台',
+      '订单列表支持查询、新增、编辑、删除和分页',
+      '异常订单有独立入口，便于优先处理',
+      '核心流程包含加载态、空状态、表单校验、成功反馈和危险操作确认',
+    ],
+    handoffFiles: [
+      'docs/product/prds/',
+      'docs/product/user-stories/',
+      'docs/product/development-handoffs/',
+      'docs/product/acceptance-cases/',
+    ],
+  },
 }

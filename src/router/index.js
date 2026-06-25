@@ -4,6 +4,7 @@ import LoginPage from '../pages/LoginPage.vue'
 import DashboardPage from '../pages/DashboardPage.vue'
 import OrdersPage from '../pages/OrdersPage.vue'
 import PlaceholderPage from '../pages/PlaceholderPage.vue'
+import ProductPrdPage from '../pages/ProductPrdPage.vue'
 
 const routes = [
   {
@@ -73,6 +74,17 @@ const routes = [
         { label: '异常占比', value: '4.1%' },
       ],
     },
+  },
+  {
+    path: '/prd',
+    name: 'prd',
+    component: ProductPrdPage,
+    meta: { public: true },
+  },
+  {
+    path: '/prd-preview',
+    redirect: '/prd',
+    meta: { public: true },
   },
 ]
 

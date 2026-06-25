@@ -64,6 +64,14 @@ powershell -ExecutionPolicy Bypass -File scripts/setup.ps1 -InstallNode
 - 账号：`ops.admin`
 - 密码：`demo123`
 
+PRD 文档可直接访问，不需要登录：
+
+```text
+http://127.0.0.1:5173/prd
+```
+
+登录后台后，右上角 `PRD` 按钮会新窗口打开文档。
+
 ## AI 使用方式
 
 让 AI 先读 `AGENTS.md`，再使用项目内 skills。
@@ -77,6 +85,7 @@ powershell -ExecutionPolicy Bypass -File scripts/setup.ps1 -InstallNode
 - `docs/ai/prototype-acceptance-checklist.md`
 - `docs/ai/pm-workflow.md`
 - `docs/ai/commit-workflow.md`
+- `docs/ai/development-handoff-workflow.md`
 
 常用提示词：
 
@@ -100,6 +109,7 @@ powershell -ExecutionPolicy Bypass -File scripts/setup.ps1 -InstallNode
 - AI 应该先根据产品行业、用户和使用场景推荐主题、配色、布局密度和登录页方向。
 - AI 回答产品同事时默认使用中文。
 - AI 每轮完成有效修改后必须创建中文 Git commit，方便回溯。
+- 原型确认后，AI 必须生成 PRD 和开发交付包，不能只停留在可点击页面。
 - 运行界面必须展示具体业务产品；“脚手架”相关说明只放在文档里。
 - 页面不能直接读写 localStorage，必须通过 `src/mock/mockApi.js`。
 - 产品名、品牌缩写、登录页文案、树状侧边栏导航和首页指标统一从 `src/config/productProfile.js` 修改。
@@ -114,6 +124,8 @@ npm run test:smoke
 
 这条测试会自动启动本地服务，验证登录、进入后台、打开订单管理、新增订单等核心流程。
 
+不需要每次修改都运行 smoke。文档、规则、prompt 或 PRD 修改只需要轻量检查；只有改到登录、路由、导航或核心业务流程时再运行。
+
 ## 回溯提交
 
 每轮 AI 修改完成后都应该创建中文 commit：
@@ -123,6 +135,17 @@ npm run commit:ai -- "完善订单管理原型"
 ```
 
 commit 信息必须使用中文。产品同事后续可以根据 commit 记录回退或比较每轮原型变化。
+
+## 开发交付
+
+当原型确认可以进入开发时，让 AI 生成交付包：
+
+```text
+请使用 prd-development 和 development-handoff。
+基于当前原型生成 PRD、用户故事、字段 / 状态说明、接口 / mock 数据说明、验收用例和开发任务拆分。
+文档使用 UTF-8 中文，放到 docs/product/ 对应目录。
+完成后创建中文 commit。
+```
 
 ## Skills 目录
 
