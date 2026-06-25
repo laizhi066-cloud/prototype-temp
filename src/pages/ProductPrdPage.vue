@@ -1,45 +1,254 @@
 <script setup>
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { productProfile } from '../config/productProfile'
+import { prdApi } from '../mock/prdApi'
 
-const prd = productProfile.prd
+const route = useRoute()
+const router = useRouter()
 
-const directory = [
-  { id: 'summary', label: '需求摘要' },
-  { id: 'scope', label: '范围说明' },
-  { id: 'pages', label: '页面目录' },
-  { id: 'stories', label: '用户故事' },
-  { id: 'acceptance', label: '验收标准' },
-  { id: 'handoff', label: '交付文件' },
-]
+const loading = ref(false)
+const saving = ref(false)
+const editingMode = ref('')
+const currentDocument = ref(null)
+const indexData = ref({
+  groups: [],
+  documents: [],
+})
 
-const pages = [
-  { name: '登录页', route: '/login', purpose: '展示系统名称、描述和登录表单' },
-  { name: '工作台', route: '/', purpose: '查看订单处理概览、待办队列和风险提醒' },
-  { name: '订单列表', route: '/orders', purpose: '查询、新增、编辑和删除订单' },
-  { name: '异常订单', route: '/orders/exceptions', purpose: '优先处理需要复核的订单' },
-  { name: '数据看板', route: '/analytics', purpose: '查看订单趋势和经营分析入口' },
-]
+const form = reactive({
+  title: '',
+  category: '',
+  content: '',
+})
 
-const userStories = [
-  {
-    title: '查看订单工作台',
-    role: productProfile.targetUser,
-    action: '登录后查看待处理订单和异常提醒',
-    value: '快速判断当天需要优先处理的订单事项',
+const treeProps = {
+  label: 'label',
+  children: 'children',
+}
+
+const treeData = computed(() => {
+  const groups = [...indexData.value.groups].sort((a, b) => a.order - b.order)
+  const documents = [...indexData.value.documents].sort((a, b) => a.order - b.order)
+
+  return groups.map((group) => ({
+    id: group.id,
+    label: group.label,
+    type: 'group',
+    children: documents
+      .filter((document) => document.categoryId === group.id)
+      .map((document) => ({
+        ...document,
+        label: document.title,
+        type: 'document',
+      })),
+  }))
+})
+
+const currentCategory = computed(() => {
+  const group = indexData.value.groups.find(
+    (item) => item.id === currentDocument.value?.categoryId,
+  )
+  return group?.label || '核心需求'
+})
+
+const previewHtml = computed(() =>
+  renderMarkdown(currentDocument.value?.content || '', currentDocument.value?.title || ''),
+)
+const editorPreviewHtml = computed(() => renderMarkdown(form.content))
+
+function escapeHtml(value) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function renderInline(value) {
+  return escapeHtml(value)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+}
+
+function renderMarkdown(markdown, hiddenTitle = '') {
+  const lines = markdown.split('\n')
+  const html = []
+  let inList = false
+  let hasCheckedTitle = false
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+
+    if (!trimmed) {
+      if (inList) {
+        html.push('</ul>')
+        inList = false
+      }
+      continue
+    }
+
+    if (trimmed.startsWith('### ')) {
+      if (inList) {
+        html.push('</ul>')
+        inList = false
+      }
+      html.push(`<h3>${renderInline(trimmed.slice(4))}</h3>`)
+      continue
+    }
+
+    if (trimmed.startsWith('## ')) {
+      if (inList) {
+        html.push('</ul>')
+        inList = false
+      }
+      html.push(`<h2>${renderInline(trimmed.slice(3))}</h2>`)
+      continue
+    }
+
+    if (trimmed.startsWith('# ')) {
+      if (!hasCheckedTitle && trimmed.slice(2).trim() === hiddenTitle.trim()) {
+        hasCheckedTitle = true
+        continue
+      }
+      hasCheckedTitle = true
+      if (inList) {
+        html.push('</ul>')
+        inList = false
+      }
+      html.push(`<h2>${renderInline(trimmed.slice(2))}</h2>`)
+      continue
+    }
+
+    if (trimmed.startsWith('- ')) {
+      if (!inList) {
+        html.push('<ul>')
+        inList = true
+      }
+      html.push(`<li>${renderInline(trimmed.slice(2))}</li>`)
+      continue
+    }
+
+    if (inList) {
+      html.push('</ul>')
+      inList = false
+    }
+    html.push(`<p>${renderInline(trimmed)}</p>`)
+  }
+
+  if (inList) {
+    html.push('</ul>')
+  }
+
+  return html.join('')
+}
+
+async function refreshIndex() {
+  indexData.value = await prdApi.list()
+}
+
+async function loadDocument(id) {
+  if (!id) return
+  loading.value = true
+  try {
+    currentDocument.value = await prdApi.get(id)
+    editingMode.value = ''
+  } catch (error) {
+    ElMessage.error(error.message)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function initialize() {
+  loading.value = true
+  try {
+    await refreshIndex()
+    const docId = route.params.docId || indexData.value.documents[0]?.id
+    if (!docId) return
+    if (!route.params.docId) {
+      await router.replace(`/prd/${docId}`)
+      return
+    }
+    await loadDocument(docId)
+  } catch (error) {
+    ElMessage.error(error.message)
+  } finally {
+    loading.value = false
+  }
+}
+
+function handleTreeClick(node) {
+  if (node.type !== 'document') return
+  router.push(`/prd/${node.id}`)
+}
+
+function openCreate() {
+  editingMode.value = 'create'
+  Object.assign(form, {
+    title: '',
+    category: currentCategory.value,
+    content: `# 新 PRD\n\n## 需求摘要\n\n请在这里描述产品目标、目标用户和核心场景。\n`,
+  })
+}
+
+function openEdit() {
+  if (!currentDocument.value) return
+  editingMode.value = 'edit'
+  Object.assign(form, {
+    title: currentDocument.value.title,
+    category: currentCategory.value,
+    content: currentDocument.value.content,
+  })
+}
+
+function cancelEdit() {
+  editingMode.value = ''
+}
+
+async function saveDocument() {
+  if (!form.title.trim() || !form.content.trim()) {
+    ElMessage.error('请填写文档标题和内容')
+    return
+  }
+
+  saving.value = true
+  try {
+    const payload = {
+      title: form.title,
+      category: form.category,
+      content: form.content,
+    }
+    const saved =
+      editingMode.value === 'create'
+        ? await prdApi.create(payload)
+        : await prdApi.update(currentDocument.value.id, payload)
+    await refreshIndex()
+    currentDocument.value = saved
+    editingMode.value = ''
+    ElMessage.success('PRD 已保存')
+    if (route.params.docId !== saved.id) {
+      await router.push(`/prd/${saved.id}`)
+    }
+  } catch (error) {
+    ElMessage.error(error.message)
+  } finally {
+    saving.value = false
+  }
+}
+
+watch(
+  () => route.params.docId,
+  (docId) => {
+    if (docId) {
+      loadDocument(docId)
+    }
   },
-  {
-    title: '维护订单记录',
-    role: productProfile.targetUser,
-    action: '查询、新增、编辑和删除订单',
-    value: '保证订单信息准确并能持续跟进',
-  },
-  {
-    title: '处理异常订单',
-    role: productProfile.targetUser,
-    action: '进入异常订单列表查看待复核订单',
-    value: '优先解决影响交付和客户体验的问题',
-  },
-]
+)
+
+onMounted(initialize)
 </script>
 
 <template>
@@ -53,102 +262,75 @@ const userStories = [
         </div>
       </div>
 
-      <nav class="docs-directory" aria-label="PRD 目录">
-        <a v-for="item in directory" :key="item.id" :href="`#${item.id}`">
-          {{ item.label }}
-        </a>
-      </nav>
+      <div class="sidebar-actions">
+        <el-button type="primary" plain @click="openCreate">新增文档</el-button>
+      </div>
+
+      <el-tree
+        aria-label="PRD 文档目录"
+        class="docs-tree"
+        node-key="id"
+        default-expand-all
+        :data="treeData"
+        :props="treeProps"
+        :highlight-current="true"
+        :current-node-key="route.params.docId"
+        @node-click="handleTreeClick"
+      />
     </aside>
 
-    <article class="docs-content">
-      <header class="docs-header">
-        <p>{{ productProfile.projectType }} · {{ prd.version }}</p>
-        <h1>{{ productProfile.productName }} PRD</h1>
-        <span>{{ prd.owner }}维护，供产品、设计、开发和测试评审使用。</span>
-      </header>
+    <section class="docs-content" v-loading="loading">
+      <template v-if="editingMode">
+        <header class="docs-header">
+          <p>{{ editingMode === 'create' ? '新增 PRD' : '编辑 PRD' }}</p>
+          <h1>{{ form.title || '新建 PRD 文档' }}</h1>
+          <span>保存后会写入本地 PRD 目录，刷新页面后仍可查看。</span>
+        </header>
 
-      <section id="summary" class="doc-section">
-        <h2>需求摘要</h2>
-        <dl class="summary-grid">
-          <div>
-            <dt>目标用户</dt>
-            <dd>{{ productProfile.targetUser }}</dd>
-          </div>
-          <div>
-            <dt>产品目标</dt>
-            <dd>{{ prd.goal }}</dd>
-          </div>
-          <div>
-            <dt>设计方向</dt>
-            <dd>{{ productProfile.themeRecommendation.style }}</dd>
-          </div>
-          <div>
-            <dt>布局密度</dt>
-            <dd>{{ productProfile.themeRecommendation.density }}</dd>
-          </div>
-        </dl>
-      </section>
+        <div class="editor-layout">
+          <el-form label-position="top" class="editor-form">
+            <el-form-item label="文档标题" required>
+              <el-input v-model="form.title" aria-label="文档标题" />
+            </el-form-item>
+            <el-form-item label="所属分类" required>
+              <el-input v-model="form.category" aria-label="所属分类" />
+            </el-form-item>
+            <el-form-item label="文档内容" required>
+              <el-input
+                v-model="form.content"
+                aria-label="文档内容"
+                type="textarea"
+                :rows="18"
+                resize="vertical"
+              />
+            </el-form-item>
+            <div class="editor-actions">
+              <el-button @click="cancelEdit">取消</el-button>
+              <el-button type="primary" :loading="saving" @click="saveDocument">
+                保存文档
+              </el-button>
+            </div>
+          </el-form>
 
-      <section id="scope" class="doc-section two-column">
-        <div>
-          <h2>本期范围</h2>
-          <ul>
-            <li v-for="item in prd.scope" :key="item">{{ item }}</li>
-          </ul>
+          <article class="preview-panel markdown-body" v-html="editorPreviewHtml" />
         </div>
-        <div>
-          <h2>本期不包含</h2>
-          <ul>
-            <li v-for="item in prd.outOfScope" :key="item">{{ item }}</li>
-          </ul>
-        </div>
-      </section>
+      </template>
 
-      <section id="pages" class="doc-section">
-        <h2>页面目录</h2>
-        <div class="doc-table">
-          <div class="table-row table-head">
-            <span>页面</span>
-            <span>地址</span>
-            <span>用途</span>
+      <template v-else-if="currentDocument">
+        <header class="docs-header">
+          <p>{{ currentCategory }} · {{ currentDocument.updatedAt }}</p>
+          <div class="header-row">
+            <h1>{{ currentDocument.title }}</h1>
+            <el-button type="primary" plain @click="openEdit">编辑文档</el-button>
           </div>
-          <div v-for="page in pages" :key="page.route" class="table-row">
-            <span>{{ page.name }}</span>
-            <code>{{ page.route }}</code>
-            <span>{{ page.purpose }}</span>
-          </div>
-        </div>
-      </section>
+          <span>这份文档会随产品需求和页面变更持续更新，供产品、设计、开发和测试评审使用。</span>
+        </header>
 
-      <section id="stories" class="doc-section">
-        <h2>用户故事</h2>
-        <div class="story-list">
-          <div v-for="story in userStories" :key="story.title" class="story-item">
-            <h3>{{ story.title }}</h3>
-            <p>
-              作为 {{ story.role }}，我想要 {{ story.action }}，以便于 {{ story.value }}。
-            </p>
-          </div>
-        </div>
-      </section>
+        <article class="doc-section markdown-body" v-html="previewHtml" />
+      </template>
 
-      <section id="acceptance" class="doc-section">
-        <h2>验收标准</h2>
-        <ul>
-          <li v-for="item in prd.acceptance" :key="item">{{ item }}</li>
-        </ul>
-      </section>
-
-      <section id="handoff" class="doc-section">
-        <h2>交付文件</h2>
-        <p class="section-note">
-          确认进入开发后，需要把完整文档写入以下目录，并创建中文 commit。
-        </p>
-        <div class="file-grid">
-          <code v-for="item in prd.handoffFiles" :key="item">{{ item }}</code>
-        </div>
-      </section>
-    </article>
+      <el-empty v-else description="暂无 PRD 文档，请先新增一篇文档" />
+    </section>
   </main>
 </template>
 
@@ -156,7 +338,7 @@ const userStories = [
 .prd-docs {
   display: grid;
   min-height: 100vh;
-  grid-template-columns: 256px minmax(0, 1fr);
+  grid-template-columns: 276px minmax(0, 1fr);
   background: #f3f4f6;
   color: #111827;
 }
@@ -165,7 +347,7 @@ const userStories = [
   position: sticky;
   top: 0;
   height: 100vh;
-  padding: 24px 18px;
+  padding: 20px 16px;
   border-right: 1px solid #e5e7eb;
   background: #ffffff;
 }
@@ -174,7 +356,7 @@ const userStories = [
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-bottom: 20px;
+  padding-bottom: 18px;
   border-bottom: 1px solid #e5e7eb;
 }
 
@@ -204,31 +386,28 @@ const userStories = [
   font-size: 12px;
 }
 
-.docs-directory {
-  display: grid;
-  gap: 4px;
-  margin-top: 18px;
+.sidebar-actions {
+  display: flex;
+  margin: 16px 0;
 }
 
-.docs-directory a {
-  padding: 9px 10px;
-  border-radius: 6px;
-  color: #4b5563;
+.sidebar-actions .el-button {
+  width: 100%;
+}
+
+.docs-tree {
+  --el-tree-node-hover-bg-color: #eff6ff;
+  color: #374151;
   font-size: 13px;
 }
 
-.docs-directory a:hover {
-  background: #eff6ff;
-  color: #1d4ed8;
-}
-
 .docs-content {
-  width: min(920px, 100%);
-  padding: 40px 32px 72px;
+  width: min(1040px, 100%);
+  padding: 34px 32px 72px;
 }
 
 .docs-header {
-  margin-bottom: 22px;
+  margin-bottom: 18px;
 }
 
 .docs-header p,
@@ -240,136 +419,97 @@ const userStories = [
 
 .docs-header h1 {
   margin: 8px 0;
-  font-size: 26px;
-  line-height: 1.2;
+  font-size: 24px;
+  line-height: 1.24;
 }
 
-.doc-section {
-  margin-bottom: 16px;
-  padding: 22px;
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.doc-section,
+.preview-panel,
+.editor-form {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: #ffffff;
 }
 
-.doc-section h2 {
-  margin: 0 0 14px;
+.doc-section {
+  padding: 26px;
+}
+
+.editor-layout {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.92fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.editor-form {
+  padding: 20px;
+}
+
+.editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.preview-panel {
+  min-height: 420px;
+  padding: 24px;
+}
+
+.markdown-body {
+  color: #374151;
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3) {
+  color: #111827;
+  line-height: 1.32;
+}
+
+.markdown-body :deep(h1) {
+  margin: 0 0 18px;
+  font-size: 24px;
+}
+
+.markdown-body :deep(h2) {
+  margin: 24px 0 10px;
   font-size: 17px;
 }
 
-.summary-grid {
+.markdown-body :deep(h3) {
+  margin: 18px 0 8px;
+  font-size: 14px;
+}
+
+.markdown-body :deep(p) {
+  margin: 8px 0;
+}
+
+.markdown-body :deep(ul) {
   display: grid;
-  gap: 12px;
-  margin: 0;
-}
-
-.summary-grid div {
-  display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: 16px;
-}
-
-.summary-grid dt {
-  color: #6b7280;
-  font-size: 12px;
-}
-
-.summary-grid dd {
-  margin: 0;
-  color: #374151;
-  font-size: 13px;
-  line-height: 1.7;
-}
-
-.two-column {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
-}
-
-ul {
-  display: grid;
-  gap: 8px;
-  margin: 0;
+  gap: 7px;
+  margin: 8px 0;
   padding-left: 18px;
-  color: #374151;
-  font-size: 13px;
-  line-height: 1.7;
 }
 
-.doc-table {
-  display: grid;
-  overflow: hidden;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-}
-
-.table-row {
-  display: grid;
-  grid-template-columns: 130px 150px minmax(0, 1fr);
-  gap: 12px;
-  padding: 11px 12px;
-  border-bottom: 1px solid #e5e7eb;
-  color: #374151;
-  font-size: 13px;
-}
-
-.table-row:last-child {
-  border-bottom: 0;
-}
-
-.table-head {
-  background: #f9fafb;
-  color: #6b7280;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-code {
+.markdown-body :deep(code) {
   color: #1d4ed8;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
 }
 
-.story-list {
-  display: grid;
-  gap: 10px;
-}
-
-.story-item {
-  padding: 13px 14px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #f9fafb;
-}
-
-.story-item h3 {
-  margin: 0;
-  font-size: 14px;
-}
-
-.story-item p,
-.section-note {
-  margin: 8px 0 0;
-  color: #4b5563;
-  font-size: 13px;
-  line-height: 1.7;
-}
-
-.file-grid {
-  display: grid;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.file-grid code {
-  padding: 10px 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  background: #f9fafb;
-}
-
-@media (max-width: 800px) {
+@media (max-width: 920px) {
   .prd-docs {
     grid-template-columns: 1fr;
   }
@@ -379,18 +519,28 @@ code {
     height: auto;
   }
 
-  .docs-directory {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .docs-content {
     padding: 24px 18px 48px;
   }
 
-  .two-column,
-  .summary-grid div,
-  .table-row {
+  .editor-layout {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .docs-content {
+    padding: 20px 14px 42px;
+  }
+
+  .header-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .docs-header h1,
+  .markdown-body :deep(h1) {
+    font-size: 21px;
   }
 }
 </style>

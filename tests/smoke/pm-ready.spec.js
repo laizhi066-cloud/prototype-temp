@@ -1,9 +1,36 @@
 import { expect, test } from '@playwright/test'
 
+test('PM 可以公开查看、跳转和在线维护 PRD', async ({ page }) => {
+  await page.goto('/prd')
+  await expect(page.getByRole('heading', { name: '订单管理系统 PRD' })).toBeVisible()
+  await expect(page.getByRole('tree', { name: 'PRD 文档目录' })).toBeVisible()
+
+  await page.getByRole('treeitem', { name: '订单管理系统 PRD' }).click()
+  await expect(page).toHaveURL(/\/prd\/order-management-prd$/)
+
+  await page.getByRole('button', { name: '新增文档' }).click()
+  await page.getByLabel('文档标题').fill('在线编辑验收')
+  await page.getByLabel('所属分类').fill('验收文档')
+  await page.getByLabel('文档内容').fill('# 在线编辑验收\n\n- 支持新增 PRD\n- 支持保存后刷新保留')
+  await page.getByRole('button', { name: '保存文档' }).click()
+  await expect(page.getByText('PRD 已保存')).toBeVisible()
+  await expect(page.getByRole('treeitem', { name: '在线编辑验收' })).toBeVisible()
+
+  await page.reload()
+  await expect(page.getByRole('heading', { name: '在线编辑验收' })).toBeVisible()
+  await expect(page.getByText('支持保存后刷新保留')).toBeVisible()
+
+  await page.getByRole('button', { name: '编辑文档' }).click()
+  await page.getByLabel('文档内容').fill('# 在线编辑验收\n\n- 支持新增 PRD\n- 支持保存后刷新保留\n- 支持在线编辑')
+  await page.getByRole('button', { name: '保存文档' }).click()
+  await page.reload()
+  await expect(page.getByText('支持在线编辑')).toBeVisible()
+})
+
 test('PM can log in and create an order management record', async ({ page }) => {
   await page.goto('/prd')
   await expect(page.getByRole('heading', { name: '订单管理系统 PRD' })).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'PRD 目录' })).toBeVisible()
+  await expect(page.getByRole('tree', { name: 'PRD 文档目录' })).toBeVisible()
 
   await page.goto('/login')
   await expect(page.getByRole('heading', { name: '订单管理系统' })).toBeVisible()
@@ -22,7 +49,7 @@ test('PM can log in and create an order management record', async ({ page }) => 
   await page.getByRole('button', { name: 'PRD' }).click()
   const prdPage = await prdPagePromise
   await expect(prdPage.getByRole('heading', { name: '订单管理系统 PRD' })).toBeVisible()
-  await expect(prdPage.getByRole('heading', { name: '页面目录' })).toBeVisible()
+  await expect(prdPage.getByRole('tree', { name: 'PRD 文档目录' })).toBeVisible()
   await prdPage.close()
 
   await page.getByRole('menuitem', { name: '订单列表' }).click()

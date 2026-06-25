@@ -76,7 +76,7 @@ const routes = [
     },
   },
   {
-    path: '/prd',
+    path: '/prd/:docId?',
     name: 'prd',
     component: ProductPrdPage,
     meta: { public: true },

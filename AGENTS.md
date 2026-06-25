@@ -21,8 +21,9 @@
 8. 如果新增业务模块，使用 `.agents/skills/feature-module-template/SKILL.md`。
 9. 如果修改品牌样式、默认登录信息或主题，使用 `.agents/skills/brand-config/SKILL.md`。
 10. 写代码前先用中文输出简短实现说明：项目类型、主题推荐、页面、路由、组件、mock API、验收标准。
-11. 原型进入评审或交付开发前，必须使用 `.agents/skills/prd-development/SKILL.md` 和 `.agents/skills/development-handoff/SKILL.md` 生成 PRD 与开发交付包。
-12. 每次完成有效修改并通过必要验证后，必须创建一个中文 Git commit，方便产品团队回溯。
+11. 每轮真实产品需求、页面变更、模块新增或流程调整后，默认同步更新 `/prd` 对应 PRD；只有纯样式微调或规则文档修改可以跳过，并在最终回复说明。
+12. 原型进入评审或交付开发前，必须使用 `.agents/skills/prd-development/SKILL.md` 和 `.agents/skills/development-handoff/SKILL.md` 补齐开发交付包。
+13. 每次完成有效修改并通过必要验证后，必须创建一个中文 Git commit，方便产品团队回溯。
 
 ## 默认产品决策
 
@@ -46,11 +47,15 @@
 - 不要绕过共享布局、路由、状态管理或 mock API。
 - 页面不能直接读写 `localStorage`，必须通过 `src/mock/mockApi.js`。
 - 产品名、登录页文案、侧边栏品牌、树状导航和首页指标必须来自 `src/config/productProfile.js`。
+- PRD 文档必须从 `docs/product/prds/index.json` 和 `docs/product/prds/*.md` 读取；不要把完整 PRD 写回 `productProfile.js`。
+- `/prd` 是公开文档入口，不需要鉴权；左侧必须是 PRD 目录树，右侧必须支持预览、在线新增、编辑和保存。
+- PM 不需要确认“是否写入 PRD”；AI 默认把本轮产品结论写入对应 PRD，PM 只负责在线微调。
 - 默认账号、默认密码、演示用户角色和主题色来自 `src/config/appConfig.js`。
 - 每个原型流程都要在相关位置包含加载、空状态、错误、校验、成功反馈和危险操作确认。
 - 原型完成不等于交付完成；交付给开发前必须产出 PRD、用户故事、接口 / 数据说明、验收用例和开发任务拆分。
 - 开发交付文档默认放在 `docs/product/prds/`、`docs/product/user-stories/`、`docs/product/development-handoffs/` 和 `docs/product/acceptance-cases/`。
 - 如果本轮对文件做了有效修改，完成前必须执行 Git 提交；commit 信息必须使用中文，不能使用纯英文提交信息。
+- 提交前必须查看工作区变更，避免把与本轮无关的文件混入 commit。
 - 如果当前目录还不是 Git 仓库，先初始化 Git，再提交；如果无法提交，必须在最终回复中说明失败原因和当前未提交文件。
 - AI 最终回复必须包含本轮 commit 信息；没有 commit 时不能说已经完成回溯提交。
 

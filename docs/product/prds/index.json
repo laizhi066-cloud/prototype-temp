@@ -1,0 +1,37 @@
+{
+  "groups": [
+    {
+      "id": "core",
+      "label": "核心需求",
+      "order": 1
+    },
+    {
+      "id": "handoff",
+      "label": "交付文档",
+      "order": 2
+    },
+    {
+      "id": "prd-jx23xi",
+      "label": "验收文档",
+      "order": 3
+    }
+  ],
+  "documents": [
+    {
+      "id": "order-management-prd",
+      "title": "订单管理系统 PRD",
+      "categoryId": "core",
+      "order": 1,
+      "file": "order-management-prd.md",
+      "updatedAt": "2026-06-25 17:30"
+    },
+    {
+      "id": "prd-1ukcyik",
+      "title": "在线编辑验收",
+      "categoryId": "prd-jx23xi",
+      "order": 2,
+      "file": "prd-1ukcyik.md",
+      "updatedAt": "2026-06-25 18:00"
+    }
+  ]
+}
