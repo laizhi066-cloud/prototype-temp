@@ -1,0 +1,17 @@
+[
+  {
+    "Name": "product-manager-skills",
+    "Url": "https://github.com/deanpeters/Product-Manager-Skills.git",
+    "Commit": "2fd54026072c655eb3546b574c313b681ee70daf"
+  },
+  {
+    "Name": "ui-ux-pro-max-skill",
+    "Url": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill.git",
+    "Commit": "3ebb9c8fd554248329f13eaa9561cb436d4765a1"
+  },
+  {
+    "Name": "openai-skills",
+    "Url": "https://github.com/openai/skills.git",
+    "Commit": "49f948faa9258a0c61caceaf225e179651397431"
+  }
+]
