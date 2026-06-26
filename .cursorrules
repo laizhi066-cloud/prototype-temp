@@ -1,0 +1,14 @@
+本项目所有规则以根目录 AGENTS.md 为准，请先完整阅读并严格遵守。
+
+接手任何任务前，先读 AGENTS.md（规则）+ docs/architecture.md（项目地图：路由表/数据模型/mockApi 速查/改动约定）。
+
+这是一个 Vue 3 + Vite + Element Plus + Vue Router + Pinia + mock(localStorage) 的通用产品原型脚手架。使用者是不看代码的产品经理（PM）。你的目标是「听话、可控、可验收」，不是写漂亮代码。
+
+最关键的铁律（详见 AGENTS.md）：
+1. PM 给需求时，第一条回复只能是澄清反问（带编号选项 + 推荐默认值，一次问清 ≤5 条），在 PM 回答前禁止输出任何代码/PRD/页面；只问业务不问技术（框架/登录页/头部/侧边栏已定稿）。
+2. 默认把本轮结论写进 docs/product/prds/ 对应 PRD（不用问 PM），PM 在 /prd 页面微调。
+3. 产品名/登录文案/侧边栏/导航树从 src/config/productProfile.js 改；账号/主题从 src/config/appConfig.js 改。
+4. 页面不直接读写 localStorage，必须走 src/mock/mockApi.js；不绕过共享布局 src/layouts/AppLayout.vue、路由、Pinia。
+5. 统一风格：只用 Element Plus 组件 + AppLayout，照样板页（OrdersPage 等）抄，禁引入 Tailwind/shadcn，主题取自 appConfig。
+6. 不生成巨型单文件，新模块用 feature-module-template 拆分。
+7. 一次只做一个功能；完工给「本次页面直达链接 + 怎么验收（点哪看啥）」并创建中文 commit。全程中文。
