@@ -67,6 +67,9 @@ async function submit() {
       </el-form>
 
       <p class="login-note">当前账号用于本地验证，正式接入时替换为企业登录。</p>
+      <p class="login-note">
+        想看其它形态？<a href="/demo">后台 / C 端 / H5 形态画廊 →</a>
+      </p>
     </section>
   </main>
 </template>

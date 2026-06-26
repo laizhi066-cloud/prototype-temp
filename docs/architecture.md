@@ -129,3 +129,15 @@ scripts/                   PM 一键脚本（check/setup/start，bat + mjs）
 - 在线浏览/编辑：`/prd` 页（`ProductPrdPage`，`meta.public` 公开免登录），左侧分组树、右侧正文，支持「新增文档 / 编辑文档」并即时写回磁盘。
 - 依赖：编辑能力依赖 `vite.config.js` 注册的 **`/api/prds` 中间件**，仅在 `npm run dev` / `npm run preview` 下可用（纯静态 build 后只能看不能改）。
 - 模板：`docs/product/prds/template.md`（单功能 PRD 模板，PM 澄清完需求后据此先写 PRD 给确认，再写代码）。
+
+## 三种产品形态（后台 / C 端 / H5）
+
+脚手架内置三套外壳，新项目按需求选一种、删其余。形态画廊：`/demo`（公开）。
+
+| 形态 | Layout | 样板页 | 路由 | 特征 |
+|---|---|---|---|---|
+| 后台管理 | `src/layouts/AppLayout.vue` | DashboardPage / OrdersPage | `/`、`/orders` | 侧边栏 + 顶栏 + 表格/表单/弹窗 |
+| C 端 Web | `src/layouts/ConsumerLayout.vue` | ConsumerHomePage / ConsumerDetailPage | `/demo/consumer`、`/demo/consumer/detail` | 顶部导航 + 首页/列表/详情，无侧边栏 |
+| H5 移动端 | `src/layouts/MobileLayout.vue` | MobileHomePage / MobileProfilePage | `/demo/h5`、`/demo/h5/profile` | 手机宽度 + 顶部栏 + 底部 Tab + 单列卡片 |
+
+做某形态时：页面包对应 layout、照对应样板页抄结构；品牌取自 `productProfile`，主题色取自 `appConfig.primaryColor`。demo 路由都是 `meta.public`（免登录可看）。

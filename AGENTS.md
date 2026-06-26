@@ -60,6 +60,7 @@
 - C 端 Web 默认使用顶部导航、首页、列表页、详情页、个人中心，不使用后台侧边栏。
 - H5 移动端默认使用移动端宽度、单列内容、触控友好控件、底部 Tab 或顶部返回栏，复杂表格改成卡片或分组列表。
 - 数据看板默认包含顶部筛选区、指标卡、图表区和明细表格。
+- **三种形态的外壳与样板已内置**：后台 `src/layouts/AppLayout.vue`；C 端 `src/layouts/ConsumerLayout.vue`（样板页 `ConsumerHomePage` / `ConsumerDetailPage`，路由 `/demo/consumer`）；H5 `src/layouts/MobileLayout.vue`（样板页 `MobileHomePage` / `MobileProfilePage`，路由 `/demo/h5`）。做对应形态时**用对应 layout、照对应样板页抄**，别用后台侧边栏去套 C 端 / H5。三形态画廊：`/demo`。
 - 无法判断项目类型时，只问一个问题：「这是后台管理、C 端 Web，还是 H5？」
 
 ## UI 一致性红线（统一风格，不许跑偏）

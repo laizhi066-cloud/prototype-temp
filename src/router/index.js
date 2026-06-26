@@ -75,6 +75,37 @@ const routes = [
       ],
     },
   },
+  // —— 形态 demo（公开，无需登录；展示后台/C端/H5 三种形态）——
+  {
+    path: '/demo',
+    name: 'demo-gallery',
+    component: () => import('../pages/DemoGalleryPage.vue'),
+    meta: { public: true },
+  },
+  {
+    path: '/demo/consumer',
+    name: 'demo-consumer',
+    component: () => import('../pages/ConsumerHomePage.vue'),
+    meta: { public: true },
+  },
+  {
+    path: '/demo/consumer/detail',
+    name: 'demo-consumer-detail',
+    component: () => import('../pages/ConsumerDetailPage.vue'),
+    meta: { public: true },
+  },
+  {
+    path: '/demo/h5',
+    name: 'demo-h5',
+    component: () => import('../pages/MobileHomePage.vue'),
+    meta: { public: true },
+  },
+  {
+    path: '/demo/h5/profile',
+    name: 'demo-h5-profile',
+    component: () => import('../pages/MobileProfilePage.vue'),
+    meta: { public: true },
+  },
   {
     path: '/prd/:docId?',
     name: 'prd',
